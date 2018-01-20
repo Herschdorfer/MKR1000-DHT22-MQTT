@@ -11,7 +11,7 @@ The MKR1000 will
 - Disconnect Wifi
 - Sleep for 1 minute
 
-*Additionally a Watchdog timer with a 70 seconds timeout resets the MKR1000 if it hangs because of connection issues.*
+*Additionally a Watchdog timer with the maximum of 8 seconds resets the MKR1000 if it hangs because of connection issues.*
 
 # How to use
 Create a config.h file with the following contents
