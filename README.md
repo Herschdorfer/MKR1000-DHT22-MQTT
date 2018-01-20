@@ -11,4 +11,22 @@ The MKR1000 will
 - Disconnect Wifi
 - Sleep for 1 minute
 
-Additionally a Watchdog timer with a 70 seconds timeout resets the MKR1000 if it hangs because of connection issues.
+*Additionally a Watchdog timer with a 70 seconds timeout resets the MKR1000 if it hangs because of connection issues.*
+
+# How to use
+Create a config.h file with the following contents
+```
+#define WIFI_SSID "YOUR_SSID"
+#define WIFI_PASS "YOUR_WIFI_PASSWORD"
+
+#define MQTT_SERVER "YOUR_MQTT DNS/IP"
+#define MQTT_SERVERPORT 1883
+#define MQTT_USERNAME "YOUR_MQTT_USERNAME"
+#define MQTT_USERNAME "YOUR_MQTT_PASSWORD"
+```
+
+The just burn the the program.
+
+**IMPORTANT**
+When you want to flash the MKR1000 for the second time, this will not work unless you press the RESET button twice and change the COM Port.
+The board is in sleep mode between the send intervals and will not answer to command via USB unless you double press the RESET button.
