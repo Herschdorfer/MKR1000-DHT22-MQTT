@@ -41,7 +41,6 @@ bool measureTrigger = false;
 
 void getNextSample(float* Temperature, float* Humidity)
 {
-  delay(2000);
   *Humidity = dht.readHumidity();
   *Temperature = dht.readTemperature();
 }
