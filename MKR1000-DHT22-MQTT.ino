@@ -1,9 +1,6 @@
 /*
  * MKR1000-DHT22-MQTT.ino
- *  
- *  
- */
-
+*/
 
 #include "config.h"
 #include <WiFi101.h>
@@ -80,9 +77,6 @@ void setup() {
   pinMode(6, OUTPUT);
   dht.begin();
 
-  // Timeout are 70 seconds since we should send every 60 seconds and reset the timer.
-  Watchdog.enable(70000);
-
   // Set the RTC
   rtc.begin();
   rtc.setTime(hours, minutes, seconds);
@@ -110,14 +104,16 @@ void work()
   temperatureFeed.publish(temperature);
   humidityFeed.publish(humidity);
 
+  delay(1000); // wait for the wifi to send the data
   disconnectMQTT();
   disconnectWifi();
   digitalWrite(6, LOW);
 }
 
 void loop() {
+  Watchdog.enable(8000);
   if (measureTrigger) {
-    work(); // to the work
+    work(); // do the work
     measureTrigger = false;
     int alarmMinutes = rtc.getMinutes();
     alarmMinutes += 1;
@@ -125,7 +121,7 @@ void loop() {
       alarmMinutes -= 60;
     }
     rtc.setAlarmTime(rtc.getHours(), alarmMinutes, rtc.getSeconds());
-    Watchdog.reset();
   }
+  Watchdog.disable();
   rtc.standbyMode();
 }
