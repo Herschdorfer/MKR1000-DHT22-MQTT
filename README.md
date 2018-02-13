@@ -30,3 +30,8 @@ The just burn the the program.
 **IMPORTANT**
 When you want to flash the MKR1000 for the second time, this will not work unless you press the RESET button twice and change the COM Port.
 The board is in sleep mode between the send intervals and will not answer to command via USB unless you double press the RESET button.
+
+# needed libraries
+
+RTC Zero
+Sleepy Dog

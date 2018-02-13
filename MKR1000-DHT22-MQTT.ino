@@ -1,9 +1,10 @@
 /*
- * MKR1000-DHT22-MQTT.ino
+   MKR1000-DHT22-MQTT.ino
 */
 
 #include "config.h"
 #include <WiFi101.h>
+#include <WiFiClient.h>
 #include <RTCZero.h>
 #include <DHT.h>
 #include <Adafruit_MQTT.h>
@@ -29,10 +30,11 @@ const byte year = 17;
 
 WiFiClient wifiClient;
 Adafruit_MQTT_Client mqtt(&wifiClient, MQTT_SERVER, MQTT_SERVERPORT, MQTT_USERNAME, MQTT_PASSWORD);
-Adafruit_MQTT_Publish temperatureFeed = Adafruit_MQTT_Publish(&mqtt, TEMPERATURE_TOPIC);
-Adafruit_MQTT_Publish humidityFeed = Adafruit_MQTT_Publish(&mqtt, HUMIDITY_TOPIC);
+Adafruit_MQTT_Publish temperatureFeed = Adafruit_MQTT_Publish(&mqtt, TEMPERATURE_TOPIC, MQTT_QOS_1);
+Adafruit_MQTT_Publish humidityFeed = Adafruit_MQTT_Publish(&mqtt, HUMIDITY_TOPIC, MQTT_QOS_1);
 
 float temperature, humidity;
+float temperature_old, humidity_old;
 
 bool measureTrigger = false;
 
@@ -62,9 +64,8 @@ void connectMQTT()
     return;
   }
 
-  while ((ret = mqtt.connect()) != 0) { 
+  while ((ret = mqtt.connect()) != 0) {
     mqtt.disconnect();
-    delay(5000);  // wait 5 seconds
   }
 }
 
@@ -74,6 +75,8 @@ void disconnectMQTT()
 }
 
 void setup() {
+  WiFi.hostname("OutsideThermometer");
+  
   pinMode(6, OUTPUT);
   dht.begin();
 
@@ -95,22 +98,32 @@ void messageReceived(String topic, String payload, char * bytes, unsigned int le
 
 void work()
 {
-  digitalWrite(6, HIGH);
+  Watchdog.reset();
   getNextSample(&temperature, &humidity);
+  Watchdog.reset();
+  if ((temperature_old != temperature) || (humidity != humidity_old))
+  {
+    humidity_old = humidity;
+    temperature_old = temperature;
+    Watchdog.reset();
+    connectWifi();
+    connectMQTT();
 
-  connectWifi();
-  connectMQTT();
+    Watchdog.reset();
+    
+    temperatureFeed.publish(temperature);
+    humidityFeed.publish(humidity);
 
-  temperatureFeed.publish(temperature);
-  humidityFeed.publish(humidity);
+    Watchdog.reset();
 
-  delay(1000); // wait for the wifi to send the data
-  disconnectMQTT();
-  disconnectWifi();
-  digitalWrite(6, LOW);
+    delay(1000); // wait for the wifi to send the data
+    disconnectMQTT();
+    disconnectWifi();
+  }
 }
 
 void loop() {
+  digitalWrite(6, HIGH);
   Watchdog.enable(8000);
   if (measureTrigger) {
     work(); // do the work
@@ -123,5 +136,6 @@ void loop() {
     rtc.setAlarmTime(rtc.getHours(), alarmMinutes, rtc.getSeconds());
   }
   Watchdog.disable();
+  digitalWrite(6, LOW);
   rtc.standbyMode();
 }
