@@ -34,7 +34,8 @@ Adafruit_MQTT_Publish temperatureFeed = Adafruit_MQTT_Publish(&mqtt, TEMPERATURE
 Adafruit_MQTT_Publish humidityFeed = Adafruit_MQTT_Publish(&mqtt, HUMIDITY_TOPIC, MQTT_QOS_1);
 
 float temperature, humidity;
-float temperature_old, humidity_old;
+long temperature_old, humidity_old;
+long temperature_new, humidity_new;
 
 bool measureTrigger = false;
 
@@ -101,10 +102,14 @@ void work()
   Watchdog.reset();
   getNextSample(&temperature, &humidity);
   Watchdog.reset();
-  if ((temperature_old != temperature) || (humidity != humidity_old))
+
+  temperature_new = temperature * 10;
+  humidity_new = humidity * 10;
+  
+  if ((temperature_old != temperature_new) || (humidity_new != humidity_old))
   {
-    humidity_old = humidity;
-    temperature_old = temperature;
+    humidity_old = humidity_new;
+    temperature_old = temperature_new;
     Watchdog.reset();
     connectWifi();
     connectMQTT();
