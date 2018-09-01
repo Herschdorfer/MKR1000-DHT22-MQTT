@@ -34,8 +34,6 @@ Adafruit_MQTT_Publish temperatureFeed = Adafruit_MQTT_Publish(&mqtt, TEMPERATURE
 Adafruit_MQTT_Publish humidityFeed = Adafruit_MQTT_Publish(&mqtt, HUMIDITY_TOPIC, MQTT_QOS_1);
 
 float temperature, humidity;
-long temperature_old, humidity_old;
-long temperature_new, humidity_new;
 
 bool measureTrigger = false;
 
@@ -55,7 +53,18 @@ void connectWifi()
 
 void disconnectWifi()
 {
-  WiFi.end();
+  WiFi.disconnect(); // Try to repair with disconnect to Wifi
+  delay(500);
+
+  while (WiFi.status() == WL_CONNECTED)
+  {
+    delay(250);
+    WiFi.disconnect(); // Try to repair with disconnect to Wifi
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      WiFi.end();
+    }
+  }
 }
 
 void connectMQTT()
@@ -77,7 +86,7 @@ void disconnectMQTT()
 
 void setup() {
   WiFi.hostname("OutsideThermometer");
-  
+
   pinMode(6, OUTPUT);
   dht.begin();
 
@@ -103,28 +112,20 @@ void work()
   getNextSample(&temperature, &humidity);
   Watchdog.reset();
 
-  temperature_new = temperature * 10;
-  humidity_new = humidity * 10;
-  
-  if ((temperature_old != temperature_new) || (humidity_new != humidity_old))
-  {
-    humidity_old = humidity_new;
-    temperature_old = temperature_new;
-    Watchdog.reset();
-    connectWifi();
-    connectMQTT();
+  connectWifi();
+  connectMQTT();
+  digitalWrite(6, LOW);
 
-    Watchdog.reset();
-    
-    temperatureFeed.publish(temperature);
-    humidityFeed.publish(humidity);
+  Watchdog.reset();
 
-    Watchdog.reset();
+  temperatureFeed.publish(temperature);
+  humidityFeed.publish(humidity);
 
-    delay(1000); // wait for the wifi to send the data
-    disconnectMQTT();
-    disconnectWifi();
-  }
+  Watchdog.reset();
+
+  disconnectMQTT();
+  disconnectWifi();
+
 }
 
 void loop() {
@@ -141,6 +142,6 @@ void loop() {
     rtc.setAlarmTime(rtc.getHours(), alarmMinutes, rtc.getSeconds());
   }
   Watchdog.disable();
-  digitalWrite(6, LOW);
+
   rtc.standbyMode();
 }
