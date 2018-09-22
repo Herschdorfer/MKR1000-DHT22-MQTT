@@ -29,16 +29,14 @@ const byte year = 17;
 
 WiFiClient wifiClient;
 Adafruit_MQTT_Client mqtt(&wifiClient, MQTT_SERVER, MQTT_SERVERPORT, MQTT_USERNAME, MQTT_PASSWORD);
-Adafruit_MQTT_Publish temperatureFeed = Adafruit_MQTT_Publish(&mqtt, TEMPERATURE_TOPIC);
-Adafruit_MQTT_Publish humidityFeed = Adafruit_MQTT_Publish(&mqtt, HUMIDITY_TOPIC);
-
-float temperature, humidity;
+Adafruit_MQTT_Publish temperatureFeed = Adafruit_MQTT_Publish(&mqtt, TEMPERATURE_TOPIC, 0);
+Adafruit_MQTT_Publish humidityFeed = Adafruit_MQTT_Publish(&mqtt, HUMIDITY_TOPIC, 0);
 
 bool measureTrigger = false;
 
 void getNextSample(float* Temperature, float* Humidity)
 {
-  *Humidity = dht.readHumidity();
+  *Humidity    = dht.readHumidity();
   *Temperature = dht.readTemperature();
 }
 
@@ -57,12 +55,11 @@ void disconnectWifi()
 
 void connectMQTT()
 {
-  int8_t ret;
   if (mqtt.connected()) {
     return;
   }
 
-  while ((ret = mqtt.connect()) != 0) { 
+  while (mqtt.connect() != 0) { 
     mqtt.disconnect();
     delay(5000);  // wait 5 seconds
   }
@@ -74,7 +71,7 @@ void disconnectMQTT()
 }
 
 void setup() {
-  pinMode(6, OUTPUT);
+  pinMode(6UL, OUTPUT);
   dht.begin();
 
   // Set the RTC
@@ -95,6 +92,8 @@ void messageReceived(String topic, String payload, char * bytes, unsigned int le
 
 void work()
 {
+  float temperature, humidity;
+
   digitalWrite(6, HIGH);
   getNextSample(&temperature, &humidity);
 
