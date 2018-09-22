@@ -4,6 +4,7 @@
 
 #include "config.h"
 #include <WiFi101.h>
+#include <WiFiClient.h>
 #include <RTCZero.h>
 #include <DHT.h>
 #include <Adafruit_MQTT.h>
@@ -29,14 +30,14 @@ const byte year = 17;
 
 WiFiClient wifiClient;
 Adafruit_MQTT_Client mqtt(&wifiClient, MQTT_SERVER, MQTT_SERVERPORT, MQTT_USERNAME, MQTT_PASSWORD);
-Adafruit_MQTT_Publish temperatureFeed = Adafruit_MQTT_Publish(&mqtt, TEMPERATURE_TOPIC, 0);
-Adafruit_MQTT_Publish humidityFeed = Adafruit_MQTT_Publish(&mqtt, HUMIDITY_TOPIC, 0);
+Adafruit_MQTT_Publish temperatureFeed = Adafruit_MQTT_Publish(&mqtt, TEMPERATURE_TOPIC, MQTT_QOS_1);
+Adafruit_MQTT_Publish humidityFeed = Adafruit_MQTT_Publish(&mqtt, HUMIDITY_TOPIC, MQTT_QOS_1);
 
 bool measureTrigger = false;
 
 void getNextSample(float* Temperature, float* Humidity)
 {
-  *Humidity    = dht.readHumidity();
+  *Humidity = dht.readHumidity();
   *Temperature = dht.readTemperature();
 }
 
@@ -50,7 +51,18 @@ void connectWifi()
 
 void disconnectWifi()
 {
-  WiFi.end();
+  WiFi.disconnect(); // Try to repair with disconnect to Wifi
+  delay(500);
+
+  while (WiFi.status() == WL_CONNECTED)
+  {
+    delay(250);
+    WiFi.disconnect(); // Try to repair with disconnect to Wifi
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      WiFi.end();
+    }
+  }
 }
 
 void connectMQTT()
@@ -59,9 +71,8 @@ void connectMQTT()
     return;
   }
 
-  while (mqtt.connect() != 0) { 
+  while (mqtt.connect() != 0) {
     mqtt.disconnect();
-    delay(5000);  // wait 5 seconds
   }
 }
 
@@ -72,6 +83,7 @@ void disconnectMQTT()
 
 void setup() {
   pinMode(6UL, OUTPUT);
+  WiFi.hostname("OutsideThermometer");
   dht.begin();
 
   // Set the RTC
@@ -96,14 +108,20 @@ void work()
 
   digitalWrite(6, HIGH);
   getNextSample(&temperature, &humidity);
+  Watchdog.reset();
 
   connectWifi();
   connectMQTT();
+
+  Watchdog.reset();
 
   temperatureFeed.publish(temperature);
   humidityFeed.publish(humidity);
 
   delay(1000); // wait for the wifi to send the data
+
+  Watchdog.reset();
+
   disconnectMQTT();
   disconnectWifi();
   digitalWrite(6, LOW);
